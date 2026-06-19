@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  creationTimestamp: "2026-06-19T08:15:07Z"
+  labels:
+    kubernetes.io/metadata.name: myapp
+  name: myapp
+  resourceVersion: "738"
+  uid: ce8e3474-060b-4a08-b169-a832698d99ac
+spec:
+  finalizers:
+  - kubernetes
+status:
+  phase: Active
