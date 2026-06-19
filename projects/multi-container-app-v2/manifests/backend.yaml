@@ -13,6 +13,9 @@ spec:
       labels:
         app: backend
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
       containers:
       - name: backend
         image: backend-v2:local
@@ -21,9 +24,29 @@ spec:
         - containerPort: 3000
         env:
         - name: MONGO_URL
-          value: "mongodb://mongo:27017/appdb"
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: mongo-url
         - name: REDIS_URL
-          value: "redis://redis:6379"
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: redis-url
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "250m"
+            memory: "256Mi"
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
 ---
 apiVersion: v1
 kind: Service
