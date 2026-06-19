@@ -30,8 +30,9 @@ spec:
           mountPath: /data/db
       volumes:
       - name: mongo-data
-        persistentVolumeClaim:
-          claimName: mongo-pvc
+        hostPath:
+          path: /data/db
+          type: DirectoryOrCreate
 ---
 apiVersion: v1
 kind: Service

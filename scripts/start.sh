@@ -1,10 +1,12 @@
 #!/bin/bash
-set -e
 
 echo "=== K8s App Startup ==="
 
-echo "[1/5] Creating k3d cluster..."
-k3d cluster create dev --port "8080:80@loadbalancer"
+echo "[1/5] Creating k3d cluster with persistent volume mount..."
+mkdir -p $HOME/.k8s-app-data/mongodb
+k3d cluster create dev \
+  --port "8080:80@loadbalancer" \
+  --volume "$HOME/.k8s-app-data/mongodb:/data/db@server:0"
 
 echo "[2/5] Building images..."
 docker build -t frontend-v2:local projects/multi-container-app-v2/frontend/
@@ -14,8 +16,8 @@ echo "[3/5] Importing images into cluster..."
 k3d image import frontend-v2:local backend-v2:local -c dev
 
 echo "[4/5] Deploying manifests..."
-kubectl apply -f projects/multi-container-app-v2/manifests/
-sleep 3
+kubectl apply -f projects/multi-container-app-v2/manifests/ || true
+sleep 5
 kubectl apply -f projects/multi-container-app-v2/manifests/
 
 echo "[5/5] Waiting for pods to be ready..."
