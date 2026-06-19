@@ -1,6 +1,6 @@
 # multi-container-app-v2
 
-Production-grade upgrade of the full stack app with a React dashboard, security hardening, and real backend telemetry.
+Production-grade full stack app running on Kubernetes with a React dashboard, security hardening, and persistent storage.
 
 ## Architecture
 
@@ -12,7 +12,7 @@ Production-grade upgrade of the full stack app with a React dashboard, security 
 
 ## What's new vs v1
 
-### Frontend
+### Frontend (v3)
 - React + Vite replacing static HTML
 - Dark dashboard UI with sidebar navigation
 - Live service status indicators (Backend, MongoDB, Redis)
@@ -21,39 +21,52 @@ Production-grade upgrade of the full stack app with a React dashboard, security 
 - TanStack Query with auto-refetch every 10s
 
 ### Security
-- Kubernetes Secrets for MongoDB and Redis URLs
-- Non-root containers (nginx-unprivileged, runAsUser 1000)
+- Kubernetes Secrets for MongoDB and Redis URLs (no hardcoded values)
+- Non-root containers — nginx-unprivileged (runAsUser 101), backend (runAsUser 1000)
 - Resource requests and limits on every pod
-- Network Policies — strict pod-to-pod traffic rules:
-  - Frontend → Backend only
-  - Backend → MongoDB + Redis only
-  - MongoDB + Redis accept traffic from Backend only
+- Network Policies — strict pod-to-pod traffic:
+  - Frontend → Backend only (port 3000)
+  - Backend → MongoDB (port 27017) + Redis (port 6379) only
+  - MongoDB + Redis accept ingress from Backend only
 
-## Structure
+### Persistence
+- MongoDB data stored at \`$HOME/.k8s-app-data/mongodb\` on the Codespace host
+- Mounted into the k3d cluster node at \`/data/db\`
+- Survives full cluster delete and recreate
+- Data is lost only if the Codespace itself is deleted
+
+## Quick Start
+
+\`\`\`bash
+# From repo root
+./scripts/start.sh
+
+# Access the app
+kubectl port-forward -n app-v2 service/frontend 9000:80
 \`\`\`
-multi-container-app-v2/
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── Header.jsx
-│   │   │   ├── Sidebar.jsx
-│   │   │   └── Dashboard.jsx
-│   │   ├── App.jsx
-│   │   └── App.css
-│   ├── nginx.conf
-│   └── Dockerfile
-├── backend/
-│   ├── app.js
-│   ├── package.json
-│   └── Dockerfile
-└── manifests/
-    ├── namespace.yaml
-    ├── secrets.yaml
-    ├── frontend.yaml
-    ├── backend.yaml
-    ├── mongo.yaml
-    ├── redis.yaml
-    └── networkpolicy.yaml
+
+## Manual Deploy
+
+\`\`\`bash
+# Create cluster
+k3d cluster create dev \\
+  --port "8080:80@loadbalancer" \\
+  --volume "$HOME/.k8s-app-data/mongodb:/data/db@server:0"
+
+# Build images
+docker build -t frontend-v2:local frontend/
+docker build -t backend-v2:local backend/
+
+# Import into cluster
+k3d image import frontend-v2:local backend-v2:local -c dev
+
+# Deploy
+kubectl apply -f manifests/
+sleep 5
+kubectl apply -f manifests/
+
+# Watch pods come up
+kubectl get pods -n app-v2 -w
 \`\`\`
 
 ## API Endpoints
@@ -61,16 +74,44 @@ multi-container-app-v2/
 | Method | Endpoint | Description |
 |---|---|---|
 | GET | /health | Service health check |
-| GET | /info | Node version, DB name, namespace, replica info |
+| GET | /info | Node version, DB name, namespace, replicas |
 | GET | /messages | Fetch messages (Redis cache → MongoDB fallback) |
-| POST | /messages | Post a new message, invalidates cache |
+| POST | /messages | Post a new message, invalidates Redis cache |
 
-## Run it
-\`\`\`bash
-k3d cluster create dev --port "8080:80@loadbalancer"
-docker build -t frontend-v2:local frontend/
-docker build -t backend-v2:local backend/
-k3d image import frontend-v2:local backend-v2:local -c dev
-kubectl apply -f manifests/
-kubectl port-forward -n app-v2 service/frontend 9000:80
+## Structure
+
 \`\`\`
+multi-container-app-v2/
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── Header.jsx       # top navigation bar
+│   │   │   ├── Sidebar.jsx      # left navigation panel
+│   │   │   └── Dashboard.jsx    # metrics, service status, messages
+│   │   ├── App.jsx
+│   │   └── App.css
+│   ├── nginx.conf               # proxies /api/ to backend:3000
+│   └── Dockerfile               # multi-stage: node builder + nginx-unprivileged
+├── backend/
+│   ├── app.js                   # Express API with health, info, messages routes
+│   ├── package.json
+│   └── Dockerfile
+└── manifests/
+    ├── namespace.yaml           # app-v2 namespace
+    ├── secrets.yaml             # MongoDB + Redis URLs as K8s Secret
+    ├── mongo-pvc.yaml           # PersistentVolumeClaim for MongoDB
+    ├── mongo.yaml               # MongoDB deployment + service + hostPath volume
+    ├── redis.yaml               # Redis deployment + service
+    ├── backend.yaml             # Backend deployment + service + secret refs
+    ├── frontend.yaml            # Frontend deployment + service + ingress
+    └── networkpolicy.yaml       # Pod-to-pod traffic rules
+\`\`\`
+
+## Resource Limits
+
+| Pod | CPU Request | CPU Limit | Memory Request | Memory Limit |
+|---|---|---|---|---|
+| frontend | 50m | 100m | 64Mi | 128Mi |
+| backend | 100m | 250m | 128Mi | 256Mi |
+| mongo | 100m | 500m | 256Mi | 512Mi |
+| redis | 50m | 100m | 64Mi | 128Mi |
