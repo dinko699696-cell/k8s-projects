@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>K8s Multi-Container App</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; background: #f5f5f5; }
+    h1 { color: #333; }
+    .card { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    input { padding: 8px; width: 70%; border: 1px solid #ddd; border-radius: 4px; }
+    button { padding: 8px 16px; background: #0070f3; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 8px; }
+    button:hover { background: #0051cc; }
+    .message { padding: 10px; border-left: 3px solid #0070f3; margin: 8px 0; background: #f0f7ff; }
+    .source { font-size: 12px; color: #666; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+  <h1>K8s Multi-Container App</h1>
+  <div class="card">
+    <h2>Post a Message</h2>
+    <input type="text" id="messageInput" placeholder="Type a message..." />
+    <button onclick="postMessage()">Send</button>
+  </div>
+  <div class="card">
+    <h2>Messages</h2>
+    <button onclick="getMessages()">Refresh</button>
+    <div id="source" class="source"></div>
+    <div id="messages"></div>
+  </div>
+  <script>
+    const API = '/api';
+
+    async function getMessages() {
+      const res = await fetch(`${API}/messages`);
+      const data = await res.json();
+      document.getElementById('source').textContent = `Source: ${data.source}`;
+      document.getElementById('messages').innerHTML = data.data
+        .map(m => `<div class="message">${m.text} <small>(${new Date(m.createdAt).toLocaleString()})</small></div>`)
+        .join('');
+    }
+
+    async function postMessage() {
+      const text = document.getElementById('messageInput').value;
+      if (!text) return;
+      await fetch(`${API}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
+      document.getElementById('messageInput').value = '';
+      getMessages();
+    }
+
+    getMessages();
+  </script>
+</body>
+</html>
