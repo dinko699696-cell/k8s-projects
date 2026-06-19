@@ -25,6 +25,17 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'backend' });
 });
 
+app.get('/info', (req, res) => {
+  res.json({
+    node: process.version,
+    database: 'appdb',
+    namespace: process.env.NAMESPACE || 'app-v2',
+    replicas: 1,
+    mongoUrl: process.env.MONGO_URL ? 'connected' : 'not set',
+    redisUrl: process.env.REDIS_URL ? 'connected' : 'not set',
+  });
+});
+
 app.get('/messages', async (req, res) => {
   try {
     const cached = await redisClient.get('messages');
