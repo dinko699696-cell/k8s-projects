@@ -1,69 +1,148 @@
 # K8s Full Stack App
 
-A production-pattern three-tier application deployed on Kubernetes, built to demonstrate real-world DevOps practices.
+A production-pattern three-tier application deployed on Kubernetes, demonstrating real-world DevOps practices including custom Docker images, Kubernetes Secrets, health probes, Prometheus metrics, and live observability.
 
 ## Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | Nginx serving a vanilla JS dashboard |
+| Frontend | Nginx + Vanilla JS dashboard |
 | Backend | Node.js + Express REST API |
 | Database | MongoDB 6 |
-| Orchestration | Kubernetes (k3d on GitHub Codespaces) |
-| Images | Docker Hub (`dancyber/fullstack-backend`, `dancyber/fullstack-frontend`) |
-| Observability | Prometheus metrics (`/metrics`), health endpoint (`/health`) |
-
-## Features
-
-- Full CRUD API — create, list, delete items with priority levels
-- Live health status in UI — DB connection, pod name, uptime
-- Pod name displayed in UI — proves Kubernetes load balancing across 2 backend replicas
-- Prometheus-ready metrics — request count, latency histograms, DB connection gauge, item count gauge
-- Kubernetes Secrets for MongoDB credentials (never hardcoded)
-- Resource requests and limits on every container
-- Liveness and readiness probes on frontend and backend
-- Structured JSON logging via morgan
+| Orchestration | Kubernetes via k3d (GitHub Codespaces) |
+| Images | Docker Hub — `dancyber/fullstack-backend:v1`, `dancyber/fullstack-frontend:v1` |
+| Observability | Prometheus `/metrics`, `/health` endpoint, k9s cluster monitoring |
 
 ## Architecture
-Browser → Nginx (frontend) → backend-service (ClusterIP)
+Browser
 
-↓
+│
 
-2x backend pods (Node.js)
+▼
 
-↓
+frontend-service (NodePort :30080)
 
-mongo-service (ClusterIP)
+│
 
-↓
+▼
+
+Nginx pod — proxies /api/* to backend-service
+
+│
+
+▼
+
+backend-service (ClusterIP :3000)
+
+│
+
+▼
+
+2x Node.js backend pods (load balanced)
+
+│
+
+├── GET /health   → liveness + readiness probes
+
+├── GET /metrics  → Prometheus scrape target
+
+└── CRUD /items   → MongoDB
+
+│
+
+▼
+
+mongo-service (ClusterIP :27017)
+
+│
+
+▼
 
 MongoDB 6 pod
 
-## Running Locally (GitHub Codespaces)
+## Features
+
+- **Real CRUD app** — create, list, delete tasks with priority levels
+- **Live health bar in UI** — DB connection status, pod name, uptime updated every 10s
+- **Load balancing visible** — pod name in UI changes as requests hit different replicas
+- **Prometheus-ready** — 4 custom metrics: request counter, latency histogram, DB connection gauge, item count gauge
+- **Kubernetes Secrets** — MongoDB credentials injected via secretKeyRef, never hardcoded
+- **Downward API** — pod name and namespace injected into backend at runtime
+- **Resource limits** — every container has CPU and memory requests and limits defined
+- **Health probes** — liveness and readiness probes on backend and frontend
+- **Custom Docker images** — both frontend and backend built and pushed to Docker Hub
+
+## Quick Start (GitHub Codespaces)
 
 ```bash
-# Start cluster
+# 1. Start cluster
 k3d cluster create dev --port "8080:80@loadbalancer"
 
-# Deploy
-kubectl apply -f manifests/
+# 2. Deploy all resources
+kubectl apply -f project1-fullstack/manifests/
 
-# Port forward
+# 3. Wait for pods
+kubectl get pods -n fullstack -w
+
+# 4. Port forward
 kubectl port-forward -n fullstack service/frontend-service 7777:80 &
 kubectl port-forward -n fullstack service/backend-service 3001:3000 &
+
+# 5. Open UI → localhost:7777
+# 6. Check health → localhost:3001/health
+# 7. Check metrics → localhost:3001/metrics
 ```
 
-## API Endpoints
+## Monitoring (k9s)
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | /health | Health check — DB status, pod name, uptime |
-| GET | /metrics | Prometheus metrics |
-| GET | /items | List all items |
-| POST | /items | Create item `{name, description, priority}` |
-| DELETE | /items/:id | Delete item by ID |
+```bash
+k9s -n fullstack
+```
+
+Keybindings: `l` logs · `d` describe · `s` shell · `0` all namespaces · `ctrl-c` exit
+
+## Project Structure
+project1-fullstack/
+
+├── backend/
+
+│   ├── index.js          # Express API — CRUD, /health, /metrics
+
+│   ├── package.json
+
+│   ├── Dockerfile
+
+│   └── README.md
+
+├── frontend/
+
+│   ├── index.html        # SPA dashboard
+
+│   ├── nginx.conf        # Reverse proxy config
+
+│   ├── Dockerfile
+
+│   └── README.md
+
+└── manifests/
+
+├── namespace.yaml
+
+├── mongo-secret.yaml
+
+├── mongo-deployment.yaml
+
+├── backend-deployment.yaml
+
+├── frontend-deployment.yaml
+
+└── README.md
 
 ## Docker Images
 
-- `dancyber/fullstack-backend:v1`
-- `dancyber/fullstack-frontend:v1`
+- dancyber/fullstack-backend:v1
+- dancyber/fullstack-frontend:v1
+
+## What's Next
+
+Project 2 adds the full Prometheus + Grafana monitoring stack, scraping this app's /metrics endpoint to produce live dashboards for request rate, latency, error rate, and DB connection status.
