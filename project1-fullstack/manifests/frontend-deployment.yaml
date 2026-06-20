@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: dancyber/fullstack-frontend:v1
+        image: dancyber/fullstack-frontend:493ad05
         ports:
         - containerPort: 80
         resources:
