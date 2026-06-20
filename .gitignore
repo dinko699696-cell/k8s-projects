@@ -1,0 +1,20 @@
+# Secrets and credentials
+.env
+*.env
+.env.*
+kubeconfig
+*.kubeconfig
+*-secret-real.yaml
+docker-credentials.json
+
+# Node
+node_modules/
+npm-debug.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json
+.idea/
