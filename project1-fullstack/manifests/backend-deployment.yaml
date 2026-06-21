@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
       - name: backend
-        image: dancyber/fullstack-backend:493ad05
+        image: dancyber/fullstack-backend:a6b45ec
         ports:
         - containerPort: 3000
         env:
