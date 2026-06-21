@@ -1,0 +1,12 @@
+Fullstack app deployed as release: {{ .Release.Name }}
+
+Pods:
+  kubectl get pods -n {{ .Values.namespace }}
+
+Access the frontend (port-forward):
+  kubectl port-forward -n {{ .Values.namespace }} svc/frontend-service 8080:{{ .Values.frontend.port }}
+  then open http://localhost:8080
+
+Check backend health:
+  kubectl run curltest --rm -it --restart=Never --image=curlimages/curl \
+    -n {{ .Values.namespace }} -- curl -s http://backend-service:{{ .Values.backend.port }}/health
