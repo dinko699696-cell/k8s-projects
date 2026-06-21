@@ -47,8 +47,12 @@ app.use((req, res, next) => {
   next();
 });
 
-const MONGO_USER = process.env.MONGO_USER || 'admin';
-const MONGO_PASS = process.env.MONGO_PASSWORD || 'password123';
+const MONGO_USER = process.env.MONGO_USER;
+const MONGO_PASS = process.env.MONGO_PASSWORD;
+if (!MONGO_USER || !MONGO_PASS) {
+  console.error('FATAL: MONGO_USER and MONGO_PASSWORD must be set');
+  process.exit(1);
+}
 const MONGO_HOST = process.env.MONGO_HOST || 'localhost';
 const MONGO_PORT = process.env.MONGO_PORT || '27017';
 const MONGO_URI = `mongodb://${MONGO_USER}:${MONGO_PASS}@${MONGO_HOST}:${MONGO_PORT}/itemsdb?authSource=admin`;
