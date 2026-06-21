@@ -1,0 +1,6 @@
+apiVersion: v2
+name: fullstack
+description: Three-tier app — Nginx frontend, Node.js backend, MongoDB
+type: application
+version: 0.1.0
+appVersion: "1.0"

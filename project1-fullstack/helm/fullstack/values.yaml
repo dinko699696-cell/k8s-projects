@@ -1,0 +1,46 @@
+namespace: fullstack
+
+mongo:
+  image: mongo:6
+  port: 27017
+  storage: 1Gi
+  storagePath: /data/db
+  secret:
+    user: YWRtaW4=
+    password: cGFzc3dvcmQxMjM=
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+backend:
+  image:
+    repository: dancyber/fullstack-backend
+    tag: latest
+  replicas: 2
+  port: 3000
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 192Mi
+
+frontend:
+  image:
+    repository: dancyber/fullstack-frontend
+    tag: latest
+  replicas: 1
+  port: 80
+  nodePort: 30080
+  resources:
+    requests:
+      cpu: 25m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 64Mi
