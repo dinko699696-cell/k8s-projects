@@ -1,0 +1,74 @@
+# kube-prometheus-stack values tuned for k3d in Codespaces.
+# Trims resource usage and enables scraping of pods that carry
+# prometheus.io/scrape annotations (our backend already has them).
+
+# Grafana — light footprint, known admin password for dev.
+grafana:
+  adminPassword: admin
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 384Mi
+  service:
+    type: ClusterIP
+
+# Prometheus — short retention, small storage, modest resources.
+prometheus:
+  prometheusSpec:
+    retention: 2d
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 2Gi
+    # Pick up pods that carry prometheus.io/scrape annotations.
+    additionalScrapeConfigs:
+      - job_name: 'annotated-pods'
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: "true"
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: pod
+
+# Trim components not needed in a single-node k3d cluster.
+alertmanager:
+  enabled: false
+
+# k3d/k3s doesn't expose these the way kubeadm does — disable to avoid
+# noisy "down" targets.
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeProxy:
+  enabled: false
+kubeEtcd:
+  enabled: false
