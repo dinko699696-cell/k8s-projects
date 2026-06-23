@@ -45,3 +45,9 @@ ingress:
   enabled: true
   className: nginx
   host: fullstack.local
+
+hpa:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilization: 60
