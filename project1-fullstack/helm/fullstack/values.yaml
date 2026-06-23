@@ -1,5 +1,4 @@
 namespace: fullstack
-
 mongo:
   image: mongo:6
   port: 27017
@@ -15,7 +14,6 @@ mongo:
     limits:
       cpu: 500m
       memory: 256Mi
-
 backend:
   image:
     repository: dancyber/fullstack-backend
@@ -29,14 +27,13 @@ backend:
     limits:
       cpu: 250m
       memory: 192Mi
-
 frontend:
   image:
     repository: dancyber/fullstack-frontend
     tag: latest
   replicas: 1
   port: 80
-  nodePort: 30080
+  serviceType: ClusterIP
   resources:
     requests:
       cpu: 25m
@@ -44,3 +41,7 @@ frontend:
     limits:
       cpu: 100m
       memory: 64Mi
+ingress:
+  enabled: true
+  className: nginx
+  host: fullstack.local
