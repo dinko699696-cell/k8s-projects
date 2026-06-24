@@ -45,6 +45,9 @@ spec:
         - podSelector:
             matchLabels:
               app: frontend
+        - podSelector:
+            matchLabels:
+              app: helm-test
 ---
 # MongoDB — only reachable from backend pods
 apiVersion: networking.k8s.io/v1
