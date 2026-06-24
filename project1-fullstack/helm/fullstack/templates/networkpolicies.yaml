@@ -1,0 +1,66 @@
+{{- if .Values.networkPolicies.enabled }}
+# Default deny — block all ingress traffic in the namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: {{ .Values.namespace }}
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+---
+# Frontend — only reachable from ingress-nginx controller
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frontend-netpol
+  namespace: {{ .Values.namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app: frontend
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+---
+# Backend — only reachable from frontend pods
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backend-netpol
+  namespace: {{ .Values.namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app: backend
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: frontend
+---
+# MongoDB — only reachable from backend pods
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mongo-netpol
+  namespace: {{ .Values.namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app: mongo
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: backend
+{{- end }}
